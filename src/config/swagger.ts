@@ -1,0 +1,533 @@
+import { COOKIE_NAME } from "./cookie";
+import { env } from "./env";
+
+const errorSchema = {
+  type: "object",
+  required: ["status", "message"],
+  properties: {
+    status: { type: "string", example: "error" },
+    message: { type: "string" },
+  },
+};
+
+const userSchema = {
+  type: "object",
+  required: ["id", "name", "email"],
+  properties: {
+    id: { type: "integer", example: 1 },
+    name: { type: "string", example: "Ali" },
+    email: { type: "string", format: "email", example: "ali@test.com" },
+  },
+};
+
+/** OpenAPI document served by Swagger UI. Add paths here as routes are added. */
+export const openApiSpec = {
+  openapi: "3.0.3",
+  info: {
+    title: "E-commerce API",
+    version: "1.0.0",
+    description: `Session is an HttpOnly cookie named ${COOKIE_NAME}. Login sets it; logout clears it.`,
+  },
+  servers: [{ url: `http://localhost:${env.PORT}` }],
+  tags: [
+    { name: "Auth", description: "Signup, login, and logout" },
+    { name: "Categories", description: "Product categories" },
+    { name: "Health", description: "Process health" },
+  ],
+  components: {
+    parameters: {
+      CategoryId: {
+        name: "id",
+        in: "path",
+        required: true,
+        schema: { type: "integer", minimum: 1, example: 1 },
+      },
+    },
+    securitySchemes: {
+      cookieAuth: {
+        type: "apiKey",
+        in: "cookie",
+        name: COOKIE_NAME,
+        description: "HttpOnly cookie set by POST /api/users/login.",
+      },
+    },
+    schemas: {
+      SignupRequest: {
+        type: "object",
+        required: ["name", "email", "password"],
+        properties: {
+          name: { type: "string", minLength: 1, example: "Ali" },
+          email: { type: "string", format: "email", example: "ali@test.com" },
+          password: { type: "string", minLength: 8, format: "password", example: "12345678" },
+        },
+      },
+      LoginRequest: {
+        type: "object",
+        required: ["email", "password"],
+        properties: {
+          email: { type: "string", format: "email", example: "ali@test.com" },
+          password: { type: "string", minLength: 8, format: "password", example: "12345678" },
+        },
+      },
+      UserResponse: {
+        type: "object",
+        required: ["status", "data"],
+        properties: {
+          status: { type: "string", example: "success" },
+          data: userSchema,
+        },
+      },
+      MeResponse: {
+        type: "object",
+        required: ["status", "data"],
+        properties: {
+          status: { type: "string", example: "success" },
+          data: {
+            type: "object",
+            required: ["id", "name", "email", "role"],
+            properties: {
+              id: { type: "integer", example: 1 },
+              name: { type: "string", example: "Ali" },
+              email: { type: "string", format: "email", example: "ali@test.com" },
+              role: { type: "string", enum: ["CUSTOMER", "ADMIN"], example: "CUSTOMER" },
+            },
+          },
+        },
+      },
+      MessageResponse: {
+        type: "object",
+        required: ["status", "message"],
+        properties: {
+          status: { type: "string", example: "success" },
+          message: { type: "string", example: "Logged out successfully" },
+        },
+      },
+      Category: {
+        type: "object",
+        required: ["id", "name", "slug"],
+        properties: {
+          id: { type: "integer", example: 1 },
+          name: { type: "string", example: "Mobile Phones" },
+          slug: { type: "string", example: "mobile-phones" },
+        },
+      },
+      CategoryResponse: {
+        type: "object",
+        required: ["status", "data"],
+        properties: {
+          status: { type: "string", example: "success" },
+          data: { $ref: "#/components/schemas/Category" },
+        },
+      },
+      CategoryListResponse: {
+        type: "object",
+        required: ["status", "data"],
+        properties: {
+          status: { type: "string", example: "success" },
+          data: {
+            type: "array",
+            items: { $ref: "#/components/schemas/Category" },
+          },
+        },
+      },
+      CreateCategoryRequest: {
+        type: "object",
+        required: ["name"],
+        properties: {
+          name: { type: "string", minLength: 1, example: "Mobile Phones" },
+        },
+      },
+      UpdateCategoryRequest: {
+        type: "object",
+        properties: {
+          name: { type: "string", minLength: 1, example: "Mobile Phones" },
+          slug: { type: "string", example: "mobile-phones" },
+        },
+      },
+      ErrorResponse: errorSchema,
+      ValidationErrorResponse: {
+        type: "object",
+        required: ["status", "message", "errors"],
+        properties: {
+          status: { type: "string", example: "error" },
+          message: { type: "string", example: "Validation failed" },
+          errors: {
+            type: "object",
+            additionalProperties: {
+              type: "array",
+              items: { type: "string" },
+            },
+          },
+        },
+      },
+    },
+  },
+  paths: {
+    "/api/health": {
+      get: {
+        tags: ["Health"],
+        operationId: "getHealth",
+        summary: "Health check",
+        description: "Reports that the process is running. Does not query the database.",
+        responses: {
+          "200": {
+            description: "Process is running",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["status"],
+                  properties: {
+                    status: { type: "string", example: "ok" },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/users/signup": {
+      post: {
+        tags: ["Auth"],
+        operationId: "signup",
+        summary: "Create an account",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/SignupRequest" },
+            },
+          },
+        },
+        responses: {
+          "201": {
+            description: "Account created. The password is not returned.",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/UserResponse" },
+              },
+            },
+          },
+          "400": {
+            description: "Validation failed",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ValidationErrorResponse" },
+              },
+            },
+          },
+          "409": {
+            description: "Email already exists",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/users/login": {
+      post: {
+        tags: ["Auth"],
+        operationId: "login",
+        summary: "Log in",
+        description: `Checks email and password, then sets the ${COOKIE_NAME} cookie. The token is not in the JSON body.`,
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/LoginRequest" },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "Logged in",
+            headers: {
+              "Set-Cookie": {
+                description: `HttpOnly session cookie ${COOKIE_NAME}`,
+                schema: { type: "string" },
+              },
+            },
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/UserResponse" },
+              },
+            },
+          },
+          "400": {
+            description: "Validation failed, or a valid session cookie is already present",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "401": {
+            description: "Invalid email or password",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/users/me": {
+      get: {
+        tags: ["Auth"],
+        operationId: "getMe",
+        summary: "Current user",
+        description: "Returns the user attached to the session cookie. The password is not included.",
+        security: [{ cookieAuth: [] }],
+        responses: {
+          "200": {
+            description: "Current user",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/MeResponse" },
+              },
+            },
+          },
+          "401": {
+            description: "Missing, invalid, or expired session cookie",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/categories": {
+      get: {
+        tags: ["Categories"],
+        operationId: "listCategories",
+        summary: "List categories",
+        description: "Public. Sorted by name.",
+        responses: {
+          "200": {
+            description: "Categories",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/CategoryListResponse" },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        tags: ["Categories"],
+        operationId: "createCategory",
+        summary: "Create a category",
+        description: "Admin only. The slug is generated from the name.",
+        security: [{ cookieAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/CreateCategoryRequest" },
+            },
+          },
+        },
+        responses: {
+          "201": {
+            description: "Category created",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/CategoryResponse" },
+              },
+            },
+          },
+          "401": {
+            description: "Not logged in",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "403": {
+            description: "Logged in, but not an admin",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "409": {
+            description: "Name or slug already exists",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/categories/{id}": {
+      get: {
+        tags: ["Categories"],
+        operationId: "getCategory",
+        summary: "Get a category",
+        parameters: [{ $ref: "#/components/parameters/CategoryId" }],
+        responses: {
+          "200": {
+            description: "Category",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/CategoryResponse" },
+              },
+            },
+          },
+          "404": {
+            description: "Category not found",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+        },
+      },
+      patch: {
+        tags: ["Categories"],
+        operationId: "updateCategory",
+        summary: "Update a category",
+        description: "Admin only. Send name, slug, or both. A new name regenerates the slug unless slug is sent too.",
+        security: [{ cookieAuth: [] }],
+        parameters: [{ $ref: "#/components/parameters/CategoryId" }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/UpdateCategoryRequest" },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "Category updated",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/CategoryResponse" },
+              },
+            },
+          },
+          "401": {
+            description: "Not logged in",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "403": {
+            description: "Logged in, but not an admin",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "404": {
+            description: "Category not found",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "409": {
+            description: "Name or slug already exists",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+        },
+      },
+      delete: {
+        tags: ["Categories"],
+        operationId: "deleteCategory",
+        summary: "Delete a category",
+        description: "Admin only. Refused when the category still has products.",
+        security: [{ cookieAuth: [] }],
+        parameters: [{ $ref: "#/components/parameters/CategoryId" }],
+        responses: {
+          "200": {
+            description: "Category deleted",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/CategoryResponse" },
+              },
+            },
+          },
+          "401": {
+            description: "Not logged in",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "403": {
+            description: "Logged in, but not an admin",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "404": {
+            description: "Category not found",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "409": {
+            description: "Category has products",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/users/logout": {
+      post: {
+        tags: ["Auth"],
+        operationId: "logout",
+        summary: "Log out",
+        description: `Clears the ${COOKIE_NAME} cookie.`,
+        security: [{ cookieAuth: [] }],
+        responses: {
+          "200": {
+            description: "Logged out",
+            headers: {
+              "Set-Cookie": {
+                description: `Clears ${COOKIE_NAME}`,
+                schema: { type: "string" },
+              },
+            },
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/MessageResponse" },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+};

@@ -1,0 +1,1 @@
+export const COOKIE_NAME = "login-e-commerce";
