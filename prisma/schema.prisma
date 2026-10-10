@@ -28,9 +28,13 @@ model Product {
   id        Int      @id @default(autoincrement())
   name      String
   description String
+  imageUrl  String? 
+  stock     Int
+  isActive  Boolean  @default(true)
   price     Decimal
   categoryId Int
   category  Category @relation(fields: [categoryId], references: [id])
+  @@index([categoryId])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

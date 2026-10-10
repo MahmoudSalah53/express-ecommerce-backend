@@ -32,6 +32,7 @@ export const openApiSpec = {
   tags: [
     { name: "Auth", description: "Signup, login, and logout" },
     { name: "Categories", description: "Product categories" },
+    { name: "Products", description: "Product catalog" },
     { name: "Health", description: "Process health" },
   ],
   components: {
@@ -142,6 +143,39 @@ export const openApiSpec = {
         properties: {
           name: { type: "string", minLength: 1, example: "Mobile Phones" },
           slug: { type: "string", example: "mobile-phones" },
+        },
+      },
+      ProductListResponse: {
+        type: "object",
+        required: ["status", "data", "meta"],
+        properties: {
+          status: { type: "string", example: "success" },
+          data: {
+            type: "array",
+            items: {
+              type: "object",
+              required: ["id", "name", "description", "price", "stock", "isActive", "category"],
+              properties: {
+                id: { type: "integer", example: 1 },
+                name: { type: "string", example: "Phone" },
+                description: { type: "string", example: "A phone" },
+                price: { type: "string", example: "199.00" },
+                stock: { type: "integer", example: 10 },
+                imageUrl: { type: "string", nullable: true, example: "https://example.com/phone.jpg" },
+                isActive: { type: "boolean", example: true },
+                category: { $ref: "#/components/schemas/Category" },
+              },
+            },
+          },
+          meta: {
+            type: "object",
+            required: ["page", "limit", "total"],
+            properties: {
+              page: { type: "integer", example: 1 },
+              limit: { type: "integer", example: 10 },
+              total: { type: "integer", example: 1 },
+            },
+          },
         },
       },
       ErrorResponse: errorSchema,
@@ -498,6 +532,42 @@ export const openApiSpec = {
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/products": {
+      get: {
+        tags: ["Products"],
+        operationId: "listProducts",
+        summary: "List products",
+        description:
+          "Public. Active products only. An admin cookie with includeInactive=true also returns hidden products. Other callers sending includeInactive are ignored. total counts every match, not just the current page.",
+        parameters: [
+          { name: "page", in: "query", schema: { type: "integer", minimum: 1, default: 1 } },
+          { name: "limit", in: "query", schema: { type: "integer", minimum: 1, maximum: 100, default: 10 } },
+          { name: "categoryId", in: "query", schema: { type: "integer", minimum: 1 } },
+          { name: "search", in: "query", schema: { type: "string" }, description: "Case-insensitive match on the product name." },
+          { name: "minPrice", in: "query", schema: { type: "number", minimum: 0 } },
+          { name: "maxPrice", in: "query", schema: { type: "number", minimum: 0 } },
+          { name: "includeInactive", in: "query", schema: { type: "string", enum: ["true", "false"], default: "false" } },
+        ],
+        responses: {
+          "200": {
+            description: "Products",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ProductListResponse" },
+              },
+            },
+          },
+          "400": {
+            description: "Invalid query, including limit above 100 or minPrice greater than maxPrice",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ValidationErrorResponse" },
               },
             },
           },

@@ -1,10 +1,20 @@
 import { RequestHandler } from "express";
 import { productService } from "../services/product.service";
-import { CreateProductInput } from "../validators/product.validator";
+import { CreateProductInput, ListProductsQuery } from "../validators/product.validator";
+import { getAuthUser } from "../middlewares/auth.middleware";
 
-export const listProducts: RequestHandler = async (_req, res) => {
-  const items = await productService.list();
-  res.json({ status: "success", data: items });
+export const listProducts: RequestHandler = async (req, res) => {
+  const user = await getAuthUser(req);
+  const isAdmin = user?.role === "ADMIN";
+
+  const query = req.query as unknown as ListProductsQuery;
+  const { items, total } = await productService.list(query, isAdmin);
+
+  res.json({
+    status: "success",
+    data: items,
+    meta: { page: query.page, limit: query.limit, total },
+  });
 };
 
 export const getProduct: RequestHandler = async (req, res) => {
