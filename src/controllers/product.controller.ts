@@ -1,6 +1,6 @@
 import { RequestHandler } from "express";
 import { productService } from "../services/product.service";
-import { CreateProductInput, ListProductsQuery } from "../validators/product.validator";
+import { ListProductsQuery } from "../validators/product.validator";
 import { getAuthUser } from "../middlewares/auth.middleware";
 
 export const listProducts: RequestHandler = async (req, res) => {
@@ -17,12 +17,15 @@ export const listProducts: RequestHandler = async (req, res) => {
   });
 };
 
-export const getProduct: RequestHandler = async (req, res) => {
-  const item = await productService.getById(Number(req.params.id));
-  res.json({ status: "success", data: item });
-};
+export const getProductById: RequestHandler = async (req, res) => {
+  const user = await getAuthUser(req);
+  const isAdmin = user?.role === "ADMIN";
 
-export const createProduct: RequestHandler = async (req, res) => {
-  const item = await productService.create(req.body as CreateProductInput);
-  res.status(201).json({ status: "success", data: item });
-};
+  const product = await productService.getById(Number(req.params.id), isAdmin);
+
+  res.json({
+    status: "success",
+    data: product,
+  });
+}
+

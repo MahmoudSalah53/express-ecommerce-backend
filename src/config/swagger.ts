@@ -145,6 +145,28 @@ export const openApiSpec = {
           slug: { type: "string", example: "mobile-phones" },
         },
       },
+      Product: {
+        type: "object",
+        required: ["id", "name", "description", "price", "stock", "isActive", "category"],
+        properties: {
+          id: { type: "integer", example: 1 },
+          name: { type: "string", example: "Phone" },
+          description: { type: "string", example: "A phone" },
+          price: { type: "string", example: "199.00" },
+          stock: { type: "integer", example: 10 },
+          imageUrl: { type: "string", nullable: true, example: "https://example.com/phone.jpg" },
+          isActive: { type: "boolean", example: true },
+          category: { $ref: "#/components/schemas/Category" },
+        },
+      },
+      ProductResponse: {
+        type: "object",
+        required: ["status", "data"],
+        properties: {
+          status: { type: "string", example: "success" },
+          data: { $ref: "#/components/schemas/Product" },
+        },
+      },
       ProductListResponse: {
         type: "object",
         required: ["status", "data", "meta"],
@@ -152,20 +174,7 @@ export const openApiSpec = {
           status: { type: "string", example: "success" },
           data: {
             type: "array",
-            items: {
-              type: "object",
-              required: ["id", "name", "description", "price", "stock", "isActive", "category"],
-              properties: {
-                id: { type: "integer", example: 1 },
-                name: { type: "string", example: "Phone" },
-                description: { type: "string", example: "A phone" },
-                price: { type: "string", example: "199.00" },
-                stock: { type: "integer", example: 10 },
-                imageUrl: { type: "string", nullable: true, example: "https://example.com/phone.jpg" },
-                isActive: { type: "boolean", example: true },
-                category: { $ref: "#/components/schemas/Category" },
-              },
-            },
+            items: { $ref: "#/components/schemas/Product" },
           },
           meta: {
             type: "object",
@@ -568,6 +577,43 @@ export const openApiSpec = {
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/ValidationErrorResponse" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/products/{id}": {
+      get: {
+        tags: ["Products"],
+        operationId: "getProduct",
+        summary: "Get a product",
+        description: "Public. A hidden product is returned only when the caller is an admin. Guests and customers get 404.",
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "integer", minimum: 1, example: 1 } },
+        ],
+        responses: {
+          "200": {
+            description: "Product",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ProductResponse" },
+              },
+            },
+          },
+          "400": {
+            description: "Invalid id",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ValidationErrorResponse" },
+              },
+            },
+          },
+          "404": {
+            description: "Product not found, or hidden from this caller",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
               },
             },
           },
