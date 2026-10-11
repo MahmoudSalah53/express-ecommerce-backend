@@ -134,6 +134,26 @@ export const productService = {
     })
 
     return updatedProduct;
+  },
+
+  async delete(id: number) {
+    const product = await prisma.product.findUnique({ where: { id } });
+    if (!product) throw new AppError("Product not found", 404);
+
+    const deletedProduct = await prisma.product.update({
+      where: { id },
+      data: { isActive: false },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        price: true,
+        stock: true,
+        imageUrl: true,
+      }
+    })
+
+    return deletedProduct;
   }
 
 

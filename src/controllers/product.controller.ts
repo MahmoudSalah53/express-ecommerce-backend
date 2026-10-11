@@ -48,3 +48,12 @@ export const updateProduct: RequestHandler = async (req, res) => {
     data: product,
   });
 }
+
+export const deletedProduct: RequestHandler = async (req, res) => {
+  const product = await productService.delete(Number(req.params.id));
+
+  res.status(200).json({
+    status: "success",
+    data: product,
+  });
+}

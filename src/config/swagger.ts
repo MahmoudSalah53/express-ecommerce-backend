@@ -779,6 +779,58 @@ export const openApiSpec = {
           },
         },
       },
+      delete: {
+        tags: ["Products"],
+        operationId: "deleteProduct",
+        summary: "Hide a product",
+        description: "Admin only. Sets isActive to false and keeps the row, so older orders that reference this product stay valid. Guests and customers then get 404 from the list and the product details.",
+        security: [{ cookieAuth: [] }],
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "integer", minimum: 1, example: 1 } },
+        ],
+        responses: {
+          "200": {
+            description: "Product hidden",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/CreatedProductResponse" },
+              },
+            },
+          },
+          "400": {
+            description: "Invalid id",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ValidationErrorResponse" },
+              },
+            },
+          },
+          "401": {
+            description: "Not logged in",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "403": {
+            description: "Logged in, but not an admin",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "404": {
+            description: "Product not found",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+        },
+      },
     },
     "/api/users/logout": {
       post: {
