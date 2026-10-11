@@ -171,6 +171,18 @@ export const openApiSpec = {
           categoryId: { type: "integer", minimum: 1, example: 1 },
         },
       },
+      UpdateProductRequest: {
+        type: "object",
+        minProperties: 1,
+        properties: {
+          name: { type: "string", minLength: 1, example: "Phone" },
+          description: { type: "string", minLength: 1, example: "A phone" },
+          price: { type: "number", minimum: 0, example: 199 },
+          stock: { type: "integer", minimum: 0, example: 20 },
+          imageUrl: { type: "string", format: "uri", example: "https://example.com/phone.jpg" },
+          categoryId: { type: "integer", minimum: 1, example: 1 },
+        },
+      },
       CreatedProductResponse: {
         type: "object",
         required: ["status", "data"],
@@ -699,6 +711,66 @@ export const openApiSpec = {
           },
           "404": {
             description: "Product not found, or hidden from this caller",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+        },
+      },
+      patch: {
+        tags: ["Products"],
+        operationId: "updateProduct",
+        summary: "Update a product",
+        description: "Admin only. Send one or more fields. stock replaces the current value. An empty body is rejected.",
+        security: [{ cookieAuth: [] }],
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "integer", minimum: 1, example: 1 } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/UpdateProductRequest" },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "Product updated",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/CreatedProductResponse" },
+              },
+            },
+          },
+          "400": {
+            description: "Invalid id or body, including an empty body",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ValidationErrorResponse" },
+              },
+            },
+          },
+          "401": {
+            description: "Not logged in",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "403": {
+            description: "Logged in, but not an admin",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "404": {
+            description: "Product or category not found",
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/ErrorResponse" },

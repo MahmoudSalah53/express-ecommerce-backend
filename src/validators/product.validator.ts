@@ -9,7 +9,10 @@ export const createProductSchema = z.object({
   categoryId: z.coerce.number().int().positive(),
 });
 
-export const updateProductSchema = createProductSchema;
+export const updateProductSchema = createProductSchema.partial().refine(
+  (data) => Object.keys(data).length > 0,
+  { message: "At least one field is required" },
+);
 
 export const productIdParamSchema = z.object({
   id: z.coerce.number().int().positive(),

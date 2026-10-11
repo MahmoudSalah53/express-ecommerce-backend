@@ -1,6 +1,6 @@
 import { RequestHandler } from "express";
 import { productService } from "../services/product.service";
-import { CreateProductInput, ListProductsQuery } from "../validators/product.validator";
+import { CreateProductInput, ListProductsQuery, UpdateProductInput } from "../validators/product.validator";
 import { getAuthUser } from "../middlewares/auth.middleware";
 
 export const listProducts: RequestHandler = async (req, res) => {
@@ -40,3 +40,11 @@ export const createProduct: RequestHandler = async (req, res) => {
   });
 }
 
+export const updateProduct: RequestHandler = async (req, res) => {
+  const product = await productService.update(Number(req.params.id), req.body as UpdateProductInput);
+
+  res.status(200).json({
+    status: "success",
+    data: product,
+  });
+}

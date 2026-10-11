@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../config/database";
 import { AppError } from "../utils/AppError";
-import { CreateProductInput, ListProductsQuery } from "../validators/product.validator";
+import { CreateProductInput, ListProductsQuery, UpdateProductInput } from "../validators/product.validator";
 
 export const productService = {
   async list(query: ListProductsQuery, isAdmin: boolean) {
@@ -102,6 +102,38 @@ export const productService = {
     });
 
     return product;
+  },
+
+  async update(id: number, input: UpdateProductInput) {
+    const product = await prisma.product.findUnique({ where: { id } });
+    if (!product) throw new AppError("Product not found", 404);
+
+    if (input.categoryId !== undefined) {
+      const category = await prisma.category.findUnique({ where: { id: input.categoryId } });
+      if (!category) throw new AppError("Category not found", 404);
+    }
+
+    const updatedProduct = await prisma.product.update({
+      where: { id },
+      data: {
+        ...(input.name !== undefined ? { name: input.name } : {}),
+        ...(input.description !== undefined ? { description: input.description } : {}),
+        ...(input.price !== undefined ? { price: input.price } : {}),
+        ...(input.stock !== undefined ? { stock: input.stock } : {}),
+        ...(input.imageUrl !== undefined ? { imageUrl: input.imageUrl } : {}),
+        ...(input.categoryId !== undefined ? { categoryId: input.categoryId } : {}),
+      },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        price: true,
+        stock: true,
+        imageUrl: true,
+      }
+    })
+
+    return updatedProduct;
   }
 
 
