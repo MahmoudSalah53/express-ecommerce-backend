@@ -159,6 +159,37 @@ export const openApiSpec = {
           category: { $ref: "#/components/schemas/Category" },
         },
       },
+      CreateProductRequest: {
+        type: "object",
+        required: ["name", "description", "price", "stock", "categoryId"],
+        properties: {
+          name: { type: "string", minLength: 1, example: "Phone" },
+          description: { type: "string", minLength: 1, example: "A phone" },
+          price: { type: "number", minimum: 0, example: 199 },
+          stock: { type: "integer", minimum: 0, example: 10 },
+          imageUrl: { type: "string", format: "uri", example: "https://example.com/phone.jpg" },
+          categoryId: { type: "integer", minimum: 1, example: 1 },
+        },
+      },
+      CreatedProductResponse: {
+        type: "object",
+        required: ["status", "data"],
+        properties: {
+          status: { type: "string", example: "success" },
+          data: {
+            type: "object",
+            required: ["id", "name", "description", "price", "stock"],
+            properties: {
+              id: { type: "integer", example: 1 },
+              name: { type: "string", example: "Phone" },
+              description: { type: "string", example: "A phone" },
+              price: { type: "string", example: "199" },
+              stock: { type: "integer", example: 10 },
+              imageUrl: { type: "string", nullable: true, example: "https://example.com/phone.jpg" },
+            },
+          },
+        },
+      },
       ProductResponse: {
         type: "object",
         required: ["status", "data"],
@@ -577,6 +608,63 @@ export const openApiSpec = {
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/ValidationErrorResponse" },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        tags: ["Products"],
+        operationId: "createProduct",
+        summary: "Create a product",
+        description: "Admin only. The category must already exist.",
+        security: [{ cookieAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/CreateProductRequest" },
+            },
+          },
+        },
+        responses: {
+          "201": {
+            description: "Product created",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/CreatedProductResponse" },
+              },
+            },
+          },
+          "400": {
+            description: "Invalid body, including a negative price or stock",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ValidationErrorResponse" },
+              },
+            },
+          },
+          "401": {
+            description: "Not logged in",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "403": {
+            description: "Logged in, but not an admin",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "404": {
+            description: "Category not found",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
               },
             },
           },

@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../config/database";
 import { AppError } from "../utils/AppError";
-import { ListProductsQuery } from "../validators/product.validator";
+import { CreateProductInput, ListProductsQuery } from "../validators/product.validator";
 
 export const productService = {
   async list(query: ListProductsQuery, isAdmin: boolean) {
@@ -52,7 +52,7 @@ export const productService = {
   async getById(id: number, isAdmin: boolean) {
 
     const where: Prisma.ProductWhereUniqueInput = { id };
-    
+
     const product = await prisma.product.findUnique({
       where,
       select: {
@@ -74,6 +74,32 @@ export const productService = {
     if (!isAdmin && !product.isActive) {
       throw new AppError("Product not found", 404);
     }
+
+    return product;
+  },
+
+  async create(input: CreateProductInput) {
+    const category = await prisma.category.findUnique({ where: { id: input.categoryId } });
+    if (!category) throw new AppError("Category not found", 404);
+
+    const product = await prisma.product.create({
+      data: {
+        name: input.name,
+        description: input.description,
+        price: input.price,
+        stock: input.stock,
+        imageUrl: input.imageUrl,
+        categoryId: input.categoryId,
+      },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        price: true,
+        stock: true,
+        imageUrl: true,
+      }
+    });
 
     return product;
   }

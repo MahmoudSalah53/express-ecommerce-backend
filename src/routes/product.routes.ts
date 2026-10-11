@@ -1,10 +1,12 @@
 import { Router } from "express";
-import { getProductById, listProducts } from "../controllers/product.controller";
+import { createProduct, getProductById, listProducts } from "../controllers/product.controller";
 import { validate } from "../middlewares/validate.middleware";
 import { asyncHandler } from "../utils/asyncHandler";
-import { listProductsQuerySchema, productIdParamSchema } from "../validators/product.validator";
+import { createProductSchema, listProductsQuerySchema, productIdParamSchema } from "../validators/product.validator";
+import { requireAdmin, requireAuth } from "../middlewares/auth.middleware";
 
 export const productRouter = Router();
 
 productRouter.get("/", validate({ query: listProductsQuerySchema }), asyncHandler(listProducts));
 productRouter.get("/:id", validate({ params: productIdParamSchema }), asyncHandler(getProductById));
+productRouter.post("/", requireAuth, requireAdmin, validate({ body: createProductSchema }), asyncHandler(createProduct));
