@@ -1,11 +1,12 @@
 import { Router } from "express";
-import { createCart, getCart } from "../controllers/cart.controller";
+import { createCart, getCart, updateCartItem } from "../controllers/cart.controller";
 import { asyncHandler } from "../utils/asyncHandler";
 import { requireAuth } from "../middlewares/auth.middleware";
-import { createCartSchema } from "../validators/cart.validator";
+import { cartIdParamSchema, createCartSchema, updateCartItemSchema } from "../validators/cart.validator";
 import { validate } from "../middlewares/validate.middleware";
 
 export const cartRouter = Router();
 
 cartRouter.get("/", requireAuth, asyncHandler(getCart));
 cartRouter.post("/items", requireAuth, validate({ body: createCartSchema }), asyncHandler(createCart));
+cartRouter.patch("/items/:id", requireAuth, validate({ params: cartIdParamSchema, body: updateCartItemSchema }), asyncHandler(updateCartItem));

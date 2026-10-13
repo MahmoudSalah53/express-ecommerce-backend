@@ -74,4 +74,27 @@ export const cartService = {
       data: { cartId: savedCart.id, productId, quantity: nextQuantity },
     });
   },
+
+  updateItem: async (userId: number, itemId: number, quantity: number) => {
+    const item = await prisma.cartItem.findUnique({
+      where: { id: itemId },
+      include: {
+        cart: { select: { userId: true } },
+        product: { select: { stock: true } },
+      },
+    });
+
+    if (!item || item.cart.userId !== userId) {
+      throw new AppError("Cart item not found", 404);
+    }
+
+    if (quantity > item.product.stock) {
+      throw new AppError("Not enough stock", 400);
+    }
+
+    return prisma.cartItem.update({
+      where: { id: itemId },
+      data: { quantity },
+    });
+  },
 };

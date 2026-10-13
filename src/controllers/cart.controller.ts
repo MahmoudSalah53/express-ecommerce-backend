@@ -10,4 +10,10 @@ export const createCart: RequestHandler = async (req, res) => {
   const { productId, quantity } = req.body;
   const cartItem = await cartService.create(req.user?.id as number, productId, quantity);
   return res.status(201).json({ status: "success", data: cartItem });
-}
+};
+
+export const updateCartItem: RequestHandler = async (req, res) => {
+  const { quantity } = req.body;
+  const cartItem = await cartService.updateItem(req.user?.id as number, Number(req.params.id), quantity);
+  return res.status(200).json({ status: "success", data: cartItem });
+};

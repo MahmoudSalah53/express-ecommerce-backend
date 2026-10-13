@@ -268,6 +268,13 @@ export const openApiSpec = {
           },
         },
       },
+      UpdateCartItemRequest: {
+        type: "object",
+        required: ["quantity"],
+        properties: {
+          quantity: { type: "integer", minimum: 1, maximum: 99, example: 3 },
+        },
+      },
       AddCartItemRequest: {
         type: "object",
         required: ["productId", "quantity"],
@@ -966,6 +973,61 @@ export const openApiSpec = {
           },
           "404": {
             description: "Product not found, or hidden",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/cart/items/{id}": {
+      patch: {
+        tags: ["Cart"],
+        operationId: "updateCartItem",
+        summary: "Set a cart item quantity",
+        description:
+          "Signed-in user only. quantity replaces the current value. Another customer's item is returned as 404. If quantity is greater than stock, nothing is saved.",
+        security: [{ cookieAuth: [] }],
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "integer", minimum: 1, example: 1 } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/UpdateCartItemRequest" },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "Quantity replaced",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/CartItemResponse" },
+              },
+            },
+          },
+          "400": {
+            description: "Quantity is not an integer from 1 to 99, or it is greater than stock",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "401": {
+            description: "Missing, invalid, or expired session cookie",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "404": {
+            description: "Cart item not found, including an item that belongs to another customer",
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/ErrorResponse" },
