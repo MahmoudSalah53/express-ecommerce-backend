@@ -33,6 +33,7 @@ export const openApiSpec = {
     { name: "Auth", description: "Signup, login, and logout" },
     { name: "Categories", description: "Product categories" },
     { name: "Products", description: "Product catalog" },
+    { name: "Cart", description: "The signed-in customer's cart" },
     { name: "Health", description: "Process health" },
   ],
   components: {
@@ -226,6 +227,43 @@ export const openApiSpec = {
               page: { type: "integer", example: 1 },
               limit: { type: "integer", example: 10 },
               total: { type: "integer", example: 1 },
+            },
+          },
+        },
+      },
+      CartResponse: {
+        type: "object",
+        required: ["status", "data"],
+        properties: {
+          status: { type: "string", example: "success" },
+          data: {
+            type: "object",
+            required: ["items", "subtotal"],
+            properties: {
+              items: {
+                type: "array",
+                items: {
+                  type: "object",
+                  required: ["id", "quantity", "product"],
+                  properties: {
+                    id: { type: "integer", example: 1 },
+                    quantity: { type: "integer", example: 2 },
+                    product: {
+                      type: "object",
+                      required: ["id", "name", "price", "stock", "isActive"],
+                      properties: {
+                        id: { type: "integer", example: 1 },
+                        name: { type: "string", example: "Phone" },
+                        price: { type: "string", example: "199" },
+                        imageUrl: { type: "string", nullable: true, example: "https://example.com/phone.jpg" },
+                        stock: { type: "integer", example: 10 },
+                        isActive: { type: "boolean", example: true },
+                      },
+                    },
+                  },
+                },
+              },
+              subtotal: { type: "string", example: "398" },
             },
           },
         },
@@ -823,6 +861,34 @@ export const openApiSpec = {
           },
           "404": {
             description: "Product not found",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/cart": {
+      get: {
+        tags: ["Cart"],
+        operationId: "getCart",
+        summary: "Get my cart",
+        description:
+          "The signed-in user only, including an admin. A customer with no cart gets 200 with an empty items list and subtotal 0. Hidden products stay in items so they can be removed, and they are left out of subtotal.",
+        security: [{ cookieAuth: [] }],
+        responses: {
+          "200": {
+            description: "Cart",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/CartResponse" },
+              },
+            },
+          },
+          "401": {
+            description: "Missing, invalid, or expired session cookie",
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/ErrorResponse" },
