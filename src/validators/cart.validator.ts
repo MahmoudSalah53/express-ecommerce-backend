@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const createCartSchema = z.object({
    productId: z.coerce.number().int().positive(),
-   quantity: z.coerce.number().int().positive(),
+   quantity: z.coerce.number().int().min(1).max(99),
 });
 
 export const cartIdParamSchema = z.object({

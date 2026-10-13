@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../config/database";
+import { AppError } from "../utils/AppError";
 
 
 export const cartService = {
@@ -39,7 +40,38 @@ export const cartService = {
       if (!item.product.isActive) return sum;
       return sum.add(item.product.price.mul(item.quantity));
     }, new Prisma.Decimal(0));
-    
+
     return { items, subtotal };
-  }
+  },
+
+  create: async (userId: number, productId: number, quantity: number) => {
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+      select: { id: true, stock: true, isActive: true },
+    });
+    if (!product || !product.isActive) throw new AppError("Product not found", 404);
+  
+    const cart = await prisma.cart.findUnique({ where: { userId } });
+    const existing = cart
+      ? await prisma.cartItem.findUnique({
+          where: { cartId_productId: { cartId: cart.id, productId } },
+        })
+      : null;
+  
+    const nextQuantity = (existing?.quantity ?? 0) + quantity;
+    if (nextQuantity > product.stock) throw new AppError("Not enough stock", 400);
+  
+    const savedCart = cart ?? (await prisma.cart.create({ data: { userId } }));
+  
+    if (existing) {
+      return prisma.cartItem.update({
+        where: { id: existing.id },
+        data: { quantity: nextQuantity },
+      });
+    }
+  
+    return prisma.cartItem.create({
+      data: { cartId: savedCart.id, productId, quantity: nextQuantity },
+    });
+  },
 };

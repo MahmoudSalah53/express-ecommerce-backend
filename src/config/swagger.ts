@@ -268,6 +268,31 @@ export const openApiSpec = {
           },
         },
       },
+      AddCartItemRequest: {
+        type: "object",
+        required: ["productId", "quantity"],
+        properties: {
+          productId: { type: "integer", minimum: 1, example: 1 },
+          quantity: { type: "integer", minimum: 1, maximum: 99, example: 2 },
+        },
+      },
+      CartItemResponse: {
+        type: "object",
+        required: ["status", "data"],
+        properties: {
+          status: { type: "string", example: "success" },
+          data: {
+            type: "object",
+            required: ["id", "cartId", "productId", "quantity"],
+            properties: {
+              id: { type: "integer", example: 1 },
+              cartId: { type: "integer", example: 1 },
+              productId: { type: "integer", example: 1 },
+              quantity: { type: "integer", example: 2 },
+            },
+          },
+        },
+      },
       ErrorResponse: errorSchema,
       ValidationErrorResponse: {
         type: "object",
@@ -889,6 +914,58 @@ export const openApiSpec = {
           },
           "401": {
             description: "Missing, invalid, or expired session cookie",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/cart/items": {
+      post: {
+        tags: ["Cart"],
+        operationId: "addCartItem",
+        summary: "Add a product to my cart",
+        description:
+          "Signed-in user only, including an admin. The cart is created on the first add. Adding the same product again increases quantity on the same item. If the resulting quantity is greater than stock, nothing is saved.",
+        security: [{ cookieAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/AddCartItemRequest" },
+            },
+          },
+        },
+        responses: {
+          "201": {
+            description: "Item added or quantity increased",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/CartItemResponse" },
+              },
+            },
+          },
+          "400": {
+            description: "Quantity is not an integer from 1 to 99, or the resulting quantity is greater than stock",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "401": {
+            description: "Missing, invalid, or expired session cookie",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "404": {
+            description: "Product not found, or hidden",
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/ErrorResponse" },
