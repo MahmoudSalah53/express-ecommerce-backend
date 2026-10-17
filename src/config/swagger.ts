@@ -929,6 +929,44 @@ export const openApiSpec = {
           },
         },
       },
+      delete: {
+        tags: ["Cart"],
+        operationId: "clearCart",
+        summary: "Empty my cart",
+        description: "Signed-in user only. Removes every item and keeps the cart. A user with no cart gets count 0.",
+        security: [{ cookieAuth: [] }],
+        responses: {
+          "200": {
+            description: "Cart emptied",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["status", "data"],
+                  properties: {
+                    status: { type: "string", example: "success" },
+                    data: {
+                      type: "object",
+                      required: ["count"],
+                      properties: {
+                        count: { type: "integer", example: 2, description: "Number of items removed" },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "401": {
+            description: "Missing, invalid, or expired session cookie",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+        },
+      },
     },
     "/api/cart/items": {
       post: {

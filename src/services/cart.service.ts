@@ -114,4 +114,10 @@ export const cartService = {
       where: { id: itemId },
     });
   },
+
+  clearCart: async (userId: number) => {
+    return prisma.cartItem.deleteMany({
+      where: { cart: { userId } },
+    })
+  },
 };
