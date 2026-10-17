@@ -1036,6 +1036,50 @@ export const openApiSpec = {
           },
         },
       },
+      delete: {
+        tags: ["Cart"],
+        operationId: "deleteCartItem",
+        summary: "Remove a cart item",
+        description: "Signed-in user only. Removes the item and keeps the cart. Another customer's item is returned as 404.",
+        security: [{ cookieAuth: [] }],
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "integer", minimum: 1, example: 1 } },
+        ],
+        responses: {
+          "200": {
+            description: "Item removed",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/CartItemResponse" },
+              },
+            },
+          },
+          "400": {
+            description: "Invalid id",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ValidationErrorResponse" },
+              },
+            },
+          },
+          "401": {
+            description: "Missing, invalid, or expired session cookie",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "404": {
+            description: "Cart item not found, including an item that belongs to another customer",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+        },
+      },
     },
     "/api/users/logout": {
       post: {

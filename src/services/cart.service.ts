@@ -97,4 +97,21 @@ export const cartService = {
       data: { quantity },
     });
   },
+
+  deleteItem: async (userId: number, itemId: number) => {
+    const item = await prisma.cartItem.findUnique({
+      where: { id: itemId },
+      include: {
+        cart: { select: { userId: true } },
+      },
+    });
+
+    if (!item || item.cart.userId !== userId) {
+      throw new AppError("Cart item not found", 404);
+    }
+
+    return prisma.cartItem.delete({
+      where: { id: itemId },
+    });
+  },
 };
