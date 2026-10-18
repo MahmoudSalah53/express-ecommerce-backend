@@ -21,6 +21,7 @@ model User {
   password  String
   role      Role     @default(CUSTOMER)
   cart      Cart?
+  addresses Address[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -70,4 +71,16 @@ model CartItem {
   updatedAt DateTime @updatedAt
 
   @@unique([cartId, productId])
+}
+
+model Address {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  city      String
+  street    String
+  phone     String
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

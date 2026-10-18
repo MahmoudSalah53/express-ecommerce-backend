@@ -34,6 +34,7 @@ export const openApiSpec = {
     { name: "Categories", description: "Product categories" },
     { name: "Products", description: "Product catalog" },
     { name: "Cart", description: "The signed-in customer's cart" },
+    { name: "Addresses", description: "The signed-in customer's delivery addresses" },
     { name: "Health", description: "Process health" },
   ],
   components: {
@@ -298,6 +299,58 @@ export const openApiSpec = {
               quantity: { type: "integer", example: 2 },
             },
           },
+        },
+      },
+      Address: {
+        type: "object",
+        required: ["id", "userId", "city", "street", "phone", "isDefault"],
+        properties: {
+          id: { type: "integer", example: 1 },
+          userId: { type: "integer", example: 1 },
+          city: { type: "string", example: "Cairo" },
+          street: { type: "string", example: "12 Tahrir St" },
+          phone: { type: "string", example: "01012345678" },
+          isDefault: { type: "boolean", example: true },
+          createdAt: { type: "string", format: "date-time" },
+          updatedAt: { type: "string", format: "date-time" },
+        },
+      },
+      AddressResponse: {
+        type: "object",
+        required: ["status", "data"],
+        properties: {
+          status: { type: "string", example: "success" },
+          data: { $ref: "#/components/schemas/Address" },
+        },
+      },
+      AddressListResponse: {
+        type: "object",
+        required: ["status", "data"],
+        properties: {
+          status: { type: "string", example: "success" },
+          data: {
+            type: "array",
+            items: { $ref: "#/components/schemas/Address" },
+          },
+        },
+      },
+      CreateAddressRequest: {
+        type: "object",
+        required: ["city", "street", "phone"],
+        properties: {
+          city: { type: "string", minLength: 1, example: "Cairo" },
+          street: { type: "string", minLength: 1, example: "12 Tahrir St" },
+          phone: { type: "string", minLength: 1, example: "01012345678" },
+        },
+      },
+      UpdateAddressRequest: {
+        type: "object",
+        minProperties: 1,
+        properties: {
+          city: { type: "string", minLength: 1, example: "Giza" },
+          street: { type: "string", minLength: 1, example: "5 Pyramids Rd" },
+          phone: { type: "string", minLength: 1, example: "01112345678" },
+          isDefault: { type: "boolean", example: true },
         },
       },
       ErrorResponse: errorSchema,
@@ -1110,6 +1163,187 @@ export const openApiSpec = {
           },
           "404": {
             description: "Cart item not found, including an item that belongs to another customer",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/address": {
+      get: {
+        tags: ["Addresses"],
+        operationId: "listAddresses",
+        summary: "List my addresses",
+        description: "Signed-in user only. Returns only the caller's addresses.",
+        security: [{ cookieAuth: [] }],
+        responses: {
+          "200": {
+            description: "Addresses",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/AddressListResponse" },
+              },
+            },
+          },
+          "401": {
+            description: "Missing, invalid, or expired session cookie",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        tags: ["Addresses"],
+        operationId: "createAddress",
+        summary: "Add an address",
+        description: "Signed-in user only. The first address becomes the default automatically. Later addresses are not default.",
+        security: [{ cookieAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/CreateAddressRequest" },
+            },
+          },
+        },
+        responses: {
+          "201": {
+            description: "Address created",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/AddressResponse" },
+              },
+            },
+          },
+          "400": {
+            description: "Invalid body",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ValidationErrorResponse" },
+              },
+            },
+          },
+          "401": {
+            description: "Missing, invalid, or expired session cookie",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/address/{id}": {
+      patch: {
+        tags: ["Addresses"],
+        operationId: "updateAddress",
+        summary: "Update an address",
+        description:
+          "Signed-in user only. Send one or more fields. isDefault: true makes this the only default address. Another customer's address is returned as 404.",
+        security: [{ cookieAuth: [] }],
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "integer", minimum: 1, example: 1 } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/UpdateAddressRequest" },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "Address updated",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/AddressResponse" },
+              },
+            },
+          },
+          "400": {
+            description: "Invalid id or body, including an empty body",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ValidationErrorResponse" },
+              },
+            },
+          },
+          "401": {
+            description: "Missing, invalid, or expired session cookie",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "404": {
+            description: "Address not found, including an address that belongs to another customer",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+        },
+      },
+      delete: {
+        tags: ["Addresses"],
+        operationId: "deleteAddress",
+        summary: "Delete an address",
+        description:
+          "Signed-in user only. If the default address is deleted and others remain, the oldest one becomes the default. Another customer's address is returned as 404.",
+        security: [{ cookieAuth: [] }],
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "integer", minimum: 1, example: 1 } },
+        ],
+        responses: {
+          "200": {
+            description: "Address deleted",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["status", "data"],
+                  properties: {
+                    status: { type: "string", example: "success" },
+                    data: {
+                      type: "object",
+                      required: ["message"],
+                      properties: {
+                        message: { type: "string", example: "Address deleted successfully" },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "400": {
+            description: "Invalid id",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ValidationErrorResponse" },
+              },
+            },
+          },
+          "401": {
+            description: "Missing, invalid, or expired session cookie",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "404": {
+            description: "Address not found, including an address that belongs to another customer",
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/ErrorResponse" },

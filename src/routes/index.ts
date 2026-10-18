@@ -4,6 +4,7 @@ import { userRouter } from "./user.routes";
 import { productRouter } from "./product.routes";
 import { categoryRouter } from "./category.routes";
 import { cartRouter } from "./cart.routes";
+import { addressRouter } from "./address.routes";
 
 export const apiRouter = Router();
 
@@ -12,3 +13,4 @@ apiRouter.use("/users", userRouter);
 apiRouter.use("/products", productRouter);
 apiRouter.use("/categories", categoryRouter);
 apiRouter.use("/cart", cartRouter);
+apiRouter.use("/address", addressRouter);

@@ -14,3 +14,5 @@ export const cartIdParamSchema = z.object({
 });
 
 export type CreateCartInput = z.infer<typeof createCartSchema>;
+export type UpdateCartItemInput = z.infer<typeof updateCartItemSchema>;
+export type CartIdParam = z.infer<typeof cartIdParamSchema>;
