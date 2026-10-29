@@ -14,6 +14,13 @@ enum Role {
   ADMIN
 }
 
+enum OrderStatus {
+  PENDING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   name      String
@@ -22,6 +29,7 @@ model User {
   role      Role     @default(CUSTOMER)
   cart      Cart?
   addresses Address[]
+  orders    Order[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -37,6 +45,7 @@ model Product {
   categoryId Int
   category  Category @relation(fields: [categoryId], references: [id])
   cartItems CartItem[]
+  orderItems OrderItem[]
   @@index([categoryId])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -84,3 +93,38 @@ model Address {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model Order {
+  id             Int         @id @default(autoincrement())
+  userId         Int
+  user           User        @relation(fields: [userId], references: [id])
+  status         OrderStatus @default(PENDING)
+  subtotal       Decimal
+  discount       Decimal
+  total          Decimal
+  couponCode     String?
+  shippingCity   String
+  shippingStreet String
+  shippingPhone  String
+  items          OrderItem[]
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([userId])
+}
+
+model OrderItem {
+  id        Int      @id @default(autoincrement())
+  orderId   Int
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id])
+  name      String
+  unitPrice Decimal
+  quantity  Int
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+}
+
+

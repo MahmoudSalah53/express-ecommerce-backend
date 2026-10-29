@@ -35,6 +35,7 @@ export const openApiSpec = {
     { name: "Products", description: "Product catalog" },
     { name: "Cart", description: "The signed-in customer's cart" },
     { name: "Addresses", description: "The signed-in customer's delivery addresses" },
+    { name: "Orders", description: "Orders placed from the cart" },
     { name: "Health", description: "Process health" },
   ],
   components: {
@@ -351,6 +352,53 @@ export const openApiSpec = {
           street: { type: "string", minLength: 1, example: "5 Pyramids Rd" },
           phone: { type: "string", minLength: 1, example: "01112345678" },
           isDefault: { type: "boolean", example: true },
+        },
+      },
+      CreateOrderRequest: {
+        type: "object",
+        properties: {
+          addressId: { type: "integer", minimum: 1, example: 1, description: "Defaults to the caller's default address." },
+          couponCode: { type: "string", description: "Not supported yet. Sending it returns 400." },
+        },
+      },
+      OrderItem: {
+        type: "object",
+        required: ["id", "orderId", "productId", "name", "unitPrice", "quantity"],
+        properties: {
+          id: { type: "integer", example: 1 },
+          orderId: { type: "integer", example: 1 },
+          productId: { type: "integer", example: 1 },
+          name: { type: "string", example: "Phone", description: "Product name at purchase time" },
+          unitPrice: { type: "string", example: "199", description: "Product price at purchase time" },
+          quantity: { type: "integer", example: 2 },
+          createdAt: { type: "string", format: "date-time" },
+        },
+      },
+      Order: {
+        type: "object",
+        required: ["id", "userId", "status", "subtotal", "discount", "total", "shippingCity", "shippingStreet", "shippingPhone", "items"],
+        properties: {
+          id: { type: "integer", example: 1 },
+          userId: { type: "integer", example: 1 },
+          status: { type: "string", enum: ["PENDING", "SHIPPED", "DELIVERED", "CANCELLED"], example: "PENDING" },
+          subtotal: { type: "string", example: "398" },
+          discount: { type: "string", example: "0" },
+          total: { type: "string", example: "398" },
+          couponCode: { type: "string", nullable: true, example: null },
+          shippingCity: { type: "string", example: "Cairo" },
+          shippingStreet: { type: "string", example: "12 Tahrir St" },
+          shippingPhone: { type: "string", example: "01012345678" },
+          items: { type: "array", items: { $ref: "#/components/schemas/OrderItem" } },
+          createdAt: { type: "string", format: "date-time" },
+          updatedAt: { type: "string", format: "date-time" },
+        },
+      },
+      OrderResponse: {
+        type: "object",
+        required: ["status", "data"],
+        properties: {
+          status: { type: "string", example: "success" },
+          data: { $ref: "#/components/schemas/Order" },
         },
       },
       ErrorResponse: errorSchema,
@@ -1344,6 +1392,59 @@ export const openApiSpec = {
           },
           "404": {
             description: "Address not found, including an address that belongs to another customer",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/orders": {
+      post: {
+        tags: ["Orders"],
+        operationId: "createOrder",
+        summary: "Place an order from my cart",
+        description:
+          "Signed-in user only. Uses addressId, or the default address when it is omitted. The address, product names, and prices are copied into the order. Stock is reduced and the cart is emptied in one transaction; if any step fails, nothing changes.",
+        security: [{ cookieAuth: [] }],
+        requestBody: {
+          required: false,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/CreateOrderRequest" },
+            },
+          },
+        },
+        responses: {
+          "201": {
+            description: "Order created with status PENDING",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/OrderResponse" },
+              },
+            },
+          },
+          "400": {
+            description:
+              "Empty cart, no address, a hidden product in the cart, not enough stock (names the product), couponCode sent, or invalid body",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "401": {
+            description: "Missing, invalid, or expired session cookie",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "404": {
+            description: "addressId not found, including an address that belongs to another customer",
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/ErrorResponse" },
