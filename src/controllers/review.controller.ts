@@ -1,7 +1,17 @@
 import { RequestHandler } from "express";
 import { getAuthUser } from "../middlewares/auth.middleware";
 import { reviewService } from "../services/review.service";
-import { CreateReviewInput, ListReviewsQuery } from "../validators/review.validator";
+import { CreateReviewInput, ListReviewsQuery, UpdateReviewInput } from "../validators/review.validator";
+
+export const updateReview: RequestHandler = async (req, res) => {
+  const review = await reviewService.update(req.user?.id as number, Number(req.params.id), req.body as UpdateReviewInput);
+  return res.status(200).json({ status: "success", data: review });
+};
+
+export const deleteReview: RequestHandler = async (req, res) => {
+  const review = await reviewService.delete(req.user?.id as number, Number(req.params.id));
+  return res.status(200).json({ status: "success", data: review });
+};
 
 export const createProductReview: RequestHandler = async (req, res) => {
   const review = await reviewService.create(

@@ -1,6 +1,14 @@
 import { prisma } from "../config/database";
 import { AppError } from "../utils/AppError";
-import { CreateReviewInput, ListReviewsQuery } from "../validators/review.validator";
+import { CreateReviewInput, ListReviewsQuery, UpdateReviewInput } from "../validators/review.validator";
+
+const reviewSelect = {
+  id: true,
+  rating: true,
+  comment: true,
+  createdAt: true,
+  user: { select: { name: true } },
+} as const;
 
 export const reviewService = {
   create: async (userId: number, productId: number, input: CreateReviewInput) => {
@@ -23,14 +31,29 @@ export const reviewService = {
 
     return prisma.review.create({
       data: { userId, productId, rating: input.rating, comment: input.comment },
-      select: {
-        id: true,
-        rating: true,
-        comment: true,
-        createdAt: true,
-        user: { select: { name: true } },
-      },
+      select: reviewSelect,
     });
+  },
+
+  update: async (userId: number, id: number, input: UpdateReviewInput) => {
+    const review = await prisma.review.findFirst({ where: { id, userId }, select: { id: true } });
+    if (!review) throw new AppError("Review not found", 404);
+
+    return prisma.review.update({
+      where: { id },
+      data: {
+        ...(input.rating !== undefined ? { rating: input.rating } : {}),
+        ...(input.comment !== undefined ? { comment: input.comment } : {}),
+      },
+      select: reviewSelect,
+    });
+  },
+
+  delete: async (userId: number, id: number) => {
+    const review = await prisma.review.findFirst({ where: { id, userId }, select: { id: true } });
+    if (!review) throw new AppError("Review not found", 404);
+
+    return prisma.review.delete({ where: { id }, select: reviewSelect });
   },
 
   listForProduct: async (productId: number, query: ListReviewsQuery, isAdmin: boolean) => {
@@ -48,13 +71,7 @@ export const reviewService = {
         skip: (query.page - 1) * query.limit,
         take: query.limit,
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-        select: {
-          id: true,
-          rating: true,
-          comment: true,
-          createdAt: true,
-          user: { select: { name: true } },
-        },
+        select: reviewSelect,
       }),
       prisma.review.aggregate({
         where: { productId },

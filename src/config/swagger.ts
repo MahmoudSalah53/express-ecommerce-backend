@@ -428,6 +428,14 @@ export const openApiSpec = {
           comment: { type: "string", minLength: 1, maxLength: 1000, example: "Great phone" },
         },
       },
+      UpdateReviewRequest: {
+        type: "object",
+        minProperties: 1,
+        properties: {
+          rating: { type: "integer", minimum: 1, maximum: 5, example: 4 },
+          comment: { type: "string", nullable: true, minLength: 1, maxLength: 1000, example: "Still good after a month", description: "Send null to remove the comment." },
+        },
+      },
       ReviewResponse: {
         type: "object",
         required: ["status", "data"],
@@ -1585,6 +1593,106 @@ export const openApiSpec = {
           },
           "409": {
             description: "You already reviewed this product",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/reviews/{id}": {
+      patch: {
+        tags: ["Reviews"],
+        operationId: "updateReview",
+        summary: "Edit my review",
+        description:
+          "Signed-in user only. Send rating, comment, or both. Another user's review is returned as 404. The product's average changes on the next read.",
+        security: [{ cookieAuth: [] }],
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "integer", minimum: 1, example: 1 } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/UpdateReviewRequest" },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "Review updated",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ReviewResponse" },
+              },
+            },
+          },
+          "400": {
+            description: "Invalid id or body, including an empty body or a rating outside 1 to 5",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ValidationErrorResponse" },
+              },
+            },
+          },
+          "401": {
+            description: "Missing, invalid, or expired session cookie",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "404": {
+            description: "Review not found, including a review written by another user",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+        },
+      },
+      delete: {
+        tags: ["Reviews"],
+        operationId: "deleteReview",
+        summary: "Delete my review",
+        description:
+          "Signed-in user only. Another user's review is returned as 404. After deleting, the user may review the product again.",
+        security: [{ cookieAuth: [] }],
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "integer", minimum: 1, example: 1 } },
+        ],
+        responses: {
+          "200": {
+            description: "Review deleted",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ReviewResponse" },
+              },
+            },
+          },
+          "400": {
+            description: "Invalid id",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ValidationErrorResponse" },
+              },
+            },
+          },
+          "401": {
+            description: "Missing, invalid, or expired session cookie",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "404": {
+            description: "Review not found, including a review written by another user",
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/ErrorResponse" },

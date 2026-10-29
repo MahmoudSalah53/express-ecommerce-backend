@@ -6,6 +6,7 @@ import { categoryRouter } from "./category.routes";
 import { cartRouter } from "./cart.routes";
 import { addressRouter } from "./address.routes";
 import { adminOrderRouter, orderRouter } from "./order.routes";
+import { reviewRouter } from "./review.routes";
 
 export const apiRouter = Router();
 
@@ -17,3 +18,4 @@ apiRouter.use("/cart", cartRouter);
 apiRouter.use("/address", addressRouter);
 apiRouter.use("/orders", orderRouter);
 apiRouter.use("/admin/orders", adminOrderRouter);
+apiRouter.use("/reviews", reviewRouter);
