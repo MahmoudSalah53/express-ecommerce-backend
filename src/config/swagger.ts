@@ -37,6 +37,7 @@ export const openApiSpec = {
     { name: "Addresses", description: "The signed-in customer's delivery addresses" },
     { name: "Orders", description: "Orders placed from the cart" },
     { name: "Admin Orders", description: "Admin view and status changes for every order" },
+    { name: "Reviews", description: "Product reviews" },
     { name: "Health", description: "Process health" },
   ],
   components: {
@@ -400,6 +401,48 @@ export const openApiSpec = {
         properties: {
           status: { type: "string", example: "success" },
           data: { $ref: "#/components/schemas/Order" },
+        },
+      },
+      Review: {
+        type: "object",
+        required: ["id", "rating", "createdAt", "user"],
+        properties: {
+          id: { type: "integer", example: 1 },
+          rating: { type: "integer", minimum: 1, maximum: 5, example: 4 },
+          comment: { type: "string", nullable: true, example: "Good phone" },
+          createdAt: { type: "string", format: "date-time" },
+          user: {
+            type: "object",
+            required: ["name"],
+            properties: {
+              name: { type: "string", example: "Ali" },
+            },
+          },
+        },
+      },
+      ProductReviewsResponse: {
+        type: "object",
+        required: ["status", "data", "meta"],
+        properties: {
+          status: { type: "string", example: "success" },
+          data: {
+            type: "object",
+            required: ["items", "average", "count"],
+            properties: {
+              items: { type: "array", items: { $ref: "#/components/schemas/Review" } },
+              average: { type: "number", example: 4.3, description: "Rounded to one decimal. 0 when there are no reviews." },
+              count: { type: "integer", example: 12 },
+            },
+          },
+          meta: {
+            type: "object",
+            required: ["page", "limit", "total"],
+            properties: {
+              page: { type: "integer", example: 1 },
+              limit: { type: "integer", example: 10 },
+              total: { type: "integer", example: 12 },
+            },
+          },
         },
       },
       UpdateOrderStatusRequest: {
@@ -1417,6 +1460,46 @@ export const openApiSpec = {
           },
           "404": {
             description: "Address not found, including an address that belongs to another customer",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/products/{id}/reviews": {
+      get: {
+        tags: ["Reviews"],
+        operationId: "listProductReviews",
+        summary: "List a product's reviews",
+        description:
+          "Public. Newest first. Each review shows the reviewer's name only, never the email. average and count cover every review of the product, not just the current page, and are calculated when read. A hidden product returns 404 unless the caller is an admin.",
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "integer", minimum: 1, example: 1 } },
+          { name: "page", in: "query", schema: { type: "integer", minimum: 1, default: 1 } },
+          { name: "limit", in: "query", schema: { type: "integer", minimum: 1, maximum: 100, default: 10 } },
+        ],
+        responses: {
+          "200": {
+            description: "Reviews with average and count",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ProductReviewsResponse" },
+              },
+            },
+          },
+          "400": {
+            description: "Invalid id or query",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ValidationErrorResponse" },
+              },
+            },
+          },
+          "404": {
+            description: "Product not found, or hidden from this caller",
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/ErrorResponse" },
