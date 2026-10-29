@@ -401,6 +401,23 @@ export const openApiSpec = {
           data: { $ref: "#/components/schemas/Order" },
         },
       },
+      OrderListResponse: {
+        type: "object",
+        required: ["status", "data", "meta"],
+        properties: {
+          status: { type: "string", example: "success" },
+          data: { type: "array", items: { $ref: "#/components/schemas/Order" } },
+          meta: {
+            type: "object",
+            required: ["page", "limit", "total"],
+            properties: {
+              page: { type: "integer", example: 1 },
+              limit: { type: "integer", example: 10 },
+              total: { type: "integer", example: 1 },
+            },
+          },
+        },
+      },
       ErrorResponse: errorSchema,
       ValidationErrorResponse: {
         type: "object",
@@ -1445,6 +1462,89 @@ export const openApiSpec = {
           },
           "404": {
             description: "addressId not found, including an address that belongs to another customer",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+        },
+      },
+      get: {
+        tags: ["Orders"],
+        operationId: "listOrders",
+        summary: "List my orders",
+        description: "Signed-in user only. Returns only the caller's orders, newest first. total counts every order, not just the current page.",
+        security: [{ cookieAuth: [] }],
+        parameters: [
+          { name: "page", in: "query", schema: { type: "integer", minimum: 1, default: 1 } },
+          { name: "limit", in: "query", schema: { type: "integer", minimum: 1, maximum: 100, default: 10 } },
+        ],
+        responses: {
+          "200": {
+            description: "Orders",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/OrderListResponse" },
+              },
+            },
+          },
+          "400": {
+            description: "Invalid query, including limit above 100",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ValidationErrorResponse" },
+              },
+            },
+          },
+          "401": {
+            description: "Missing, invalid, or expired session cookie",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/orders/{id}": {
+      get: {
+        tags: ["Orders"],
+        operationId: "getOrder",
+        summary: "Get one of my orders",
+        description: "Signed-in user only. Another customer's order is returned as 404, not 403, so the id is not confirmed to exist.",
+        security: [{ cookieAuth: [] }],
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "integer", minimum: 1, example: 1 } },
+        ],
+        responses: {
+          "200": {
+            description: "Order with its items",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/OrderResponse" },
+              },
+            },
+          },
+          "400": {
+            description: "Invalid id",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ValidationErrorResponse" },
+              },
+            },
+          },
+          "401": {
+            description: "Missing, invalid, or expired session cookie",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "404": {
+            description: "Order not found, including an order that belongs to another customer",
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/ErrorResponse" },

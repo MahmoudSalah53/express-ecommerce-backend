@@ -1,9 +1,37 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../config/database";
 import { AppError } from "../utils/AppError";
-import { CreateOrderInput } from "../validators/order.validator";
+import { CreateOrderInput, ListOrdersQuery } from "../validators/order.validator";
 
 export const orderService = {
+  list: async (userId: number, query: ListOrdersQuery) => {
+    const where: Prisma.OrderWhereInput = { userId };
+
+    const [items, total] = await Promise.all([
+      prisma.order.findMany({
+        where,
+        skip: (query.page - 1) * query.limit,
+        take: query.limit,
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        include: { items: true },
+      }),
+      prisma.order.count({ where }),
+    ]);
+
+    return { items, total };
+  },
+
+  getById: async (userId: number, id: number) => {
+    const order = await prisma.order.findFirst({
+      where: { id, userId },
+      include: { items: true },
+    });
+
+    if (!order) throw new AppError("Order not found", 404);
+
+    return order;
+  },
+
   create: async (userId: number, input: CreateOrderInput) => {
     if (input.couponCode !== undefined) {
       throw new AppError("Coupons are not available yet", 400);
