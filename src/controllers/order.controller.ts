@@ -1,6 +1,27 @@
 import { RequestHandler } from "express";
 import { orderService } from "../services/order.service";
-import { CreateOrderInput, ListOrdersQuery } from "../validators/order.validator";
+import {
+  AdminListOrdersQuery,
+  CreateOrderInput,
+  ListOrdersQuery,
+  UpdateOrderStatusInput,
+} from "../validators/order.validator";
+
+export const adminListOrders: RequestHandler = async (req, res) => {
+  const query = req.query as unknown as AdminListOrdersQuery;
+  const { items, total } = await orderService.adminList(query);
+
+  return res.status(200).json({
+    status: "success",
+    data: items,
+    meta: { page: query.page, limit: query.limit, total },
+  });
+};
+
+export const updateOrderStatus: RequestHandler = async (req, res) => {
+  const order = await orderService.updateStatus(Number(req.params.id), req.body as UpdateOrderStatusInput);
+  return res.status(200).json({ status: "success", data: order });
+};
 
 export const listOrders: RequestHandler = async (req, res) => {
   const query = req.query as unknown as ListOrdersQuery;

@@ -36,6 +36,7 @@ export const openApiSpec = {
     { name: "Cart", description: "The signed-in customer's cart" },
     { name: "Addresses", description: "The signed-in customer's delivery addresses" },
     { name: "Orders", description: "Orders placed from the cart" },
+    { name: "Admin Orders", description: "Admin view and status changes for every order" },
     { name: "Health", description: "Process health" },
   ],
   components: {
@@ -399,6 +400,13 @@ export const openApiSpec = {
         properties: {
           status: { type: "string", example: "success" },
           data: { $ref: "#/components/schemas/Order" },
+        },
+      },
+      UpdateOrderStatusRequest: {
+        type: "object",
+        required: ["status"],
+        properties: {
+          status: { type: "string", enum: ["PENDING", "SHIPPED", "DELIVERED", "CANCELLED"], example: "SHIPPED" },
         },
       },
       OrderListResponse: {
@@ -1592,6 +1600,125 @@ export const openApiSpec = {
           },
           "404": {
             description: "Order not found, including an order that belongs to another customer",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/admin/orders": {
+      get: {
+        tags: ["Admin Orders"],
+        operationId: "adminListOrders",
+        summary: "List all orders",
+        description: "Admin only. Every customer's orders, newest first, with the customer's id, name, and email. Filter by status.",
+        security: [{ cookieAuth: [] }],
+        parameters: [
+          { name: "status", in: "query", schema: { type: "string", enum: ["PENDING", "SHIPPED", "DELIVERED", "CANCELLED"] } },
+          { name: "page", in: "query", schema: { type: "integer", minimum: 1, default: 1 } },
+          { name: "limit", in: "query", schema: { type: "integer", minimum: 1, maximum: 100, default: 10 } },
+        ],
+        responses: {
+          "200": {
+            description: "Orders",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/OrderListResponse" },
+              },
+            },
+          },
+          "400": {
+            description: "Invalid query, including an unknown status or limit above 100",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ValidationErrorResponse" },
+              },
+            },
+          },
+          "401": {
+            description: "Not logged in",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "403": {
+            description: "Logged in, but not an admin",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/admin/orders/{id}": {
+      patch: {
+        tags: ["Admin Orders"],
+        operationId: "updateOrderStatus",
+        summary: "Change an order's status",
+        description:
+          "Admin only. Allowed: PENDING to SHIPPED, SHIPPED to DELIVERED, PENDING to CANCELLED. Cancelling returns every item's quantity to stock. DELIVERED and CANCELLED are final.",
+        security: [{ cookieAuth: [] }],
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "integer", minimum: 1, example: 1 } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/UpdateOrderStatusRequest" },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "Status changed",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/OrderResponse" },
+              },
+            },
+          },
+          "400": {
+            description: "Invalid id or status, or a transition that is not allowed (for example PENDING to DELIVERED)",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "401": {
+            description: "Not logged in",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "403": {
+            description: "Logged in, but not an admin",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "404": {
+            description: "Order not found",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "409": {
+            description: "The status was changed by another request at the same time",
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/ErrorResponse" },

@@ -1,11 +1,28 @@
 import { Router } from "express";
-import { cancelOrder, createOrder, getOrderById, listOrders } from "../controllers/order.controller";
+import {
+  adminListOrders,
+  cancelOrder,
+  createOrder,
+  getOrderById,
+  listOrders,
+  updateOrderStatus,
+} from "../controllers/order.controller";
 import { asyncHandler } from "../utils/asyncHandler";
-import { requireAuth } from "../middlewares/auth.middleware";
-import { createOrderSchema, listOrdersQuerySchema, orderIdParamSchema } from "../validators/order.validator";
+import { requireAdmin, requireAuth } from "../middlewares/auth.middleware";
+import {
+  adminListOrdersQuerySchema,
+  createOrderSchema,
+  listOrdersQuerySchema,
+  orderIdParamSchema,
+  updateOrderStatusSchema,
+} from "../validators/order.validator";
 import { validate } from "../middlewares/validate.middleware";
 
 export const orderRouter = Router();
+export const adminOrderRouter = Router();
+
+adminOrderRouter.get("/", requireAuth, requireAdmin, validate({ query: adminListOrdersQuerySchema }), asyncHandler(adminListOrders));
+adminOrderRouter.patch("/:id", requireAuth, requireAdmin, validate({ params: orderIdParamSchema, body: updateOrderStatusSchema }), asyncHandler(updateOrderStatus));
 
 orderRouter.post("/", requireAuth, validate({ body: createOrderSchema }), asyncHandler(createOrder));
 orderRouter.get("/", requireAuth, validate({ query: listOrdersQuerySchema }), asyncHandler(listOrders));

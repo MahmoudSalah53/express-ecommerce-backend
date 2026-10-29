@@ -1,7 +1,19 @@
-import { Prisma } from "@prisma/client";
+import { OrderStatus, Prisma } from "@prisma/client";
 import { prisma } from "../config/database";
 import { AppError } from "../utils/AppError";
-import { CreateOrderInput, ListOrdersQuery } from "../validators/order.validator";
+import {
+  AdminListOrdersQuery,
+  CreateOrderInput,
+  ListOrdersQuery,
+  UpdateOrderStatusInput,
+} from "../validators/order.validator";
+
+const allowedTransitions: Record<OrderStatus, OrderStatus[]> = {
+  PENDING: ["SHIPPED", "CANCELLED"],
+  SHIPPED: ["DELIVERED"],
+  DELIVERED: [],
+  CANCELLED: [],
+};
 
 export async function restoreStock(tx: Prisma.TransactionClient, orderId: number) {
   const items = await tx.orderItem.findMany({ where: { orderId } });
@@ -15,6 +27,52 @@ export async function restoreStock(tx: Prisma.TransactionClient, orderId: number
 }
 
 export const orderService = {
+  adminList: async (query: AdminListOrdersQuery) => {
+    const where: Prisma.OrderWhereInput = query.status ? { status: query.status } : {};
+
+    const [items, total] = await Promise.all([
+      prisma.order.findMany({
+        where,
+        skip: (query.page - 1) * query.limit,
+        take: query.limit,
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        include: {
+          items: true,
+          user: { select: { id: true, name: true, email: true } },
+        },
+      }),
+      prisma.order.count({ where }),
+    ]);
+
+    return { items, total };
+  },
+
+  updateStatus: async (id: number, input: UpdateOrderStatusInput) => {
+    return prisma.$transaction(async (tx) => {
+      const order = await tx.order.findUnique({ where: { id } });
+      if (!order) throw new AppError("Order not found", 404);
+
+      if (!allowedTransitions[order.status].includes(input.status)) {
+        throw new AppError(`Cannot change order status from ${order.status} to ${input.status}`, 400);
+      }
+
+      const result = await tx.order.updateMany({
+        where: { id, status: order.status },
+        data: { status: input.status },
+      });
+
+      if (result.count === 0) {
+        throw new AppError("Order status changed by another request. Try again", 409);
+      }
+
+      if (input.status === "CANCELLED") {
+        await restoreStock(tx, id);
+      }
+
+      return tx.order.findUniqueOrThrow({ where: { id }, include: { items: true } });
+    });
+  },
+
   cancel: async (userId: number, id: number) => {
     return prisma.$transaction(async (tx) => {
       const result = await tx.order.updateMany({
