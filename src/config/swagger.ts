@@ -361,7 +361,11 @@ export const openApiSpec = {
         type: "object",
         properties: {
           addressId: { type: "integer", minimum: 1, example: 1, description: "Defaults to the caller's default address." },
-          couponCode: { type: "string", description: "Not supported yet. Sending it returns 400." },
+          couponCode: {
+            type: "string",
+            example: "save10",
+            description: "Optional. Case does not matter. Must be active, not expired, and not used up.",
+          },
         },
       },
       OrderItem: {
@@ -1767,7 +1771,7 @@ export const openApiSpec = {
         operationId: "createOrder",
         summary: "Place an order from my cart",
         description:
-          "Signed-in user only. Uses addressId, or the default address when it is omitted. The address, product names, and prices are copied into the order. Stock is reduced and the cart is emptied in one transaction; if any step fails, nothing changes.",
+          "Signed-in user only. Uses addressId, or the default address when it is omitted. The address, product names, and prices are copied into the order. With a coupon, discount = subtotal * percent / 100 rounded to 2 decimals, and total = subtotal - discount. Stock is reduced, the coupon's usedCount goes up by 1, and the cart is emptied in one transaction; if any step fails, nothing changes. Cancelling the order later does not give the coupon use back.",
         security: [{ cookieAuth: [] }],
         requestBody: {
           required: false,
@@ -1788,7 +1792,7 @@ export const openApiSpec = {
           },
           "400": {
             description:
-              "Empty cart, no address, a hidden product in the cart, not enough stock (names the product), couponCode sent, or invalid body",
+              "Empty cart, no address, a hidden product in the cart, not enough stock (names the product), a coupon that does not exist or is inactive, expired, or used up, or invalid body",
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/ErrorResponse" },

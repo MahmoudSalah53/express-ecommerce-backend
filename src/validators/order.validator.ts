@@ -3,7 +3,12 @@ import { z } from "zod";
 export const createOrderSchema = z
   .object({
     addressId: z.coerce.number().int().positive().optional(),
-    couponCode: z.string().optional(),
+    couponCode: z
+      .string()
+      .trim()
+      .min(1)
+      .transform((code) => code.toUpperCase())
+      .optional(),
   })
   .default({});
 

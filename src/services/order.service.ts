@@ -121,10 +121,6 @@ export const orderService = {
   },
 
   create: async (userId: number, input: CreateOrderInput) => {
-    if (input.couponCode !== undefined) {
-      throw new AppError("Coupons are not available yet", 400);
-    }
-
     const address = input.addressId !== undefined
       ? await prisma.address.findFirst({ where: { id: input.addressId, userId } })
       : await prisma.address.findFirst({ where: { userId, isDefault: true } });
@@ -171,12 +167,38 @@ export const orderService = {
         new Prisma.Decimal(0),
       );
 
+      let discount = new Prisma.Decimal(0);
+      let couponCode: string | null = null;
+
+      if (input.couponCode !== undefined) {
+        const coupon = await tx.coupon.findUnique({ where: { code: input.couponCode } });
+        if (!coupon) throw new AppError("Invalid coupon", 400);
+
+        const result = await tx.coupon.updateMany({
+          where: {
+            id: coupon.id,
+            isActive: true,
+            expiresAt: { gt: new Date() },
+            usedCount: { lt: tx.coupon.fields.usageLimit },
+          },
+          data: { usedCount: { increment: 1 } },
+        });
+
+        if (result.count === 0) {
+          throw new AppError("Coupon is inactive, expired, or used up", 400);
+        }
+
+        discount = subtotal.mul(coupon.percent).div(100).toDecimalPlaces(2);
+        couponCode = coupon.code;
+      }
+
       const order = await tx.order.create({
         data: {
           userId,
           subtotal,
-          discount: new Prisma.Decimal(0),
-          total: subtotal,
+          discount,
+          total: subtotal.sub(discount),
+          couponCode,
           shippingCity: address.city,
           shippingStreet: address.street,
           shippingPhone: address.phone,
