@@ -420,6 +420,22 @@ export const openApiSpec = {
           },
         },
       },
+      CreateReviewRequest: {
+        type: "object",
+        required: ["rating"],
+        properties: {
+          rating: { type: "integer", minimum: 1, maximum: 5, example: 5 },
+          comment: { type: "string", minLength: 1, maxLength: 1000, example: "Great phone" },
+        },
+      },
+      ReviewResponse: {
+        type: "object",
+        required: ["status", "data"],
+        properties: {
+          status: { type: "string", example: "success" },
+          data: { $ref: "#/components/schemas/Review" },
+        },
+      },
       ProductReviewsResponse: {
         type: "object",
         required: ["status", "data", "meta"],
@@ -1500,6 +1516,75 @@ export const openApiSpec = {
           },
           "404": {
             description: "Product not found, or hidden from this caller",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        tags: ["Reviews"],
+        operationId: "createProductReview",
+        summary: "Review a product",
+        description:
+          "Signed-in user only. The caller must have a DELIVERED order that contains this product. One review per product per user. A product hidden after purchase can still be reviewed.",
+        security: [{ cookieAuth: [] }],
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "integer", minimum: 1, example: 1 } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/CreateReviewRequest" },
+            },
+          },
+        },
+        responses: {
+          "201": {
+            description: "Review created",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ReviewResponse" },
+              },
+            },
+          },
+          "400": {
+            description: "Invalid id or body, including a rating outside 1 to 5",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ValidationErrorResponse" },
+              },
+            },
+          },
+          "401": {
+            description: "Missing, invalid, or expired session cookie",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "403": {
+            description: "No DELIVERED order with this product",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "404": {
+            description: "Product not found",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "409": {
+            description: "You already reviewed this product",
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/ErrorResponse" },

@@ -1,7 +1,16 @@
 import { RequestHandler } from "express";
 import { getAuthUser } from "../middlewares/auth.middleware";
 import { reviewService } from "../services/review.service";
-import { ListReviewsQuery } from "../validators/review.validator";
+import { CreateReviewInput, ListReviewsQuery } from "../validators/review.validator";
+
+export const createProductReview: RequestHandler = async (req, res) => {
+  const review = await reviewService.create(
+    req.user?.id as number,
+    Number(req.params.id),
+    req.body as CreateReviewInput,
+  );
+  return res.status(201).json({ status: "success", data: review });
+};
 
 export const listProductReviews: RequestHandler = async (req, res) => {
   const user = await getAuthUser(req);
