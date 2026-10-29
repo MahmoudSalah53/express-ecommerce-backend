@@ -7,6 +7,7 @@ import { cartRouter } from "./cart.routes";
 import { addressRouter } from "./address.routes";
 import { adminOrderRouter, orderRouter } from "./order.routes";
 import { reviewRouter } from "./review.routes";
+import { adminCouponRouter } from "./coupon.routes";
 
 export const apiRouter = Router();
 
@@ -19,3 +20,4 @@ apiRouter.use("/address", addressRouter);
 apiRouter.use("/orders", orderRouter);
 apiRouter.use("/admin/orders", adminOrderRouter);
 apiRouter.use("/reviews", reviewRouter);
+apiRouter.use("/admin/coupons", adminCouponRouter);

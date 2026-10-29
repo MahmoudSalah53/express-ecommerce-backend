@@ -38,6 +38,7 @@ export const openApiSpec = {
     { name: "Orders", description: "Orders placed from the cart" },
     { name: "Admin Orders", description: "Admin view and status changes for every order" },
     { name: "Reviews", description: "Product reviews" },
+    { name: "Admin Coupons", description: "Admin management of discount coupons" },
     { name: "Health", description: "Process health" },
   ],
   components: {
@@ -467,6 +468,64 @@ export const openApiSpec = {
               total: { type: "integer", example: 12 },
             },
           },
+        },
+      },
+      Coupon: {
+        type: "object",
+        required: ["id", "code", "percent", "expiresAt", "isActive", "usageLimit", "usedCount"],
+        properties: {
+          id: { type: "integer", example: 1 },
+          code: { type: "string", example: "SAVE10" },
+          percent: { type: "integer", minimum: 1, maximum: 80, example: 10 },
+          expiresAt: { type: "string", format: "date-time", example: "2026-12-31T23:59:59.000Z" },
+          isActive: { type: "boolean", example: true },
+          usageLimit: { type: "integer", minimum: 1, example: 100 },
+          usedCount: { type: "integer", minimum: 0, example: 0 },
+          createdAt: { type: "string", format: "date-time" },
+          updatedAt: { type: "string", format: "date-time" },
+        },
+      },
+      CouponResponse: {
+        type: "object",
+        required: ["status", "data"],
+        properties: {
+          status: { type: "string", example: "success" },
+          data: { $ref: "#/components/schemas/Coupon" },
+        },
+      },
+      CouponListResponse: {
+        type: "object",
+        required: ["status", "data"],
+        properties: {
+          status: { type: "string", example: "success" },
+          data: { type: "array", items: { $ref: "#/components/schemas/Coupon" } },
+        },
+      },
+      CreateCouponRequest: {
+        type: "object",
+        required: ["code", "percent", "expiresAt", "usageLimit"],
+        properties: {
+          code: {
+            type: "string",
+            minLength: 1,
+            maxLength: 50,
+            pattern: "^[A-Za-z0-9_-]+$",
+            example: "save10",
+            description: "Saved in uppercase, so save10 and SAVE10 are the same code.",
+          },
+          percent: { type: "integer", minimum: 1, maximum: 80, example: 10 },
+          expiresAt: { type: "string", format: "date-time", example: "2026-12-31T23:59:59.000Z", description: "Must be in the future." },
+          usageLimit: { type: "integer", minimum: 1, example: 100 },
+          isActive: { type: "boolean", default: true, example: true },
+        },
+      },
+      UpdateCouponRequest: {
+        type: "object",
+        minProperties: 1,
+        properties: {
+          isActive: { type: "boolean", example: false },
+          expiresAt: { type: "string", format: "date-time", example: "2027-03-31T23:59:59.000Z", description: "Must be in the future." },
+          usageLimit: { type: "integer", minimum: 1, example: 200, description: "Cannot be less than usedCount." },
         },
       },
       UpdateOrderStatusRequest: {
@@ -1876,6 +1935,161 @@ export const openApiSpec = {
           },
           "404": {
             description: "Order not found, including an order that belongs to another customer",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/admin/coupons": {
+      get: {
+        tags: ["Admin Coupons"],
+        operationId: "listCoupons",
+        summary: "List coupons",
+        description: "Admin only. Newest first.",
+        security: [{ cookieAuth: [] }],
+        responses: {
+          "200": {
+            description: "Coupons",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/CouponListResponse" },
+              },
+            },
+          },
+          "401": {
+            description: "Not logged in",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "403": {
+            description: "Logged in, but not an admin",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        tags: ["Admin Coupons"],
+        operationId: "createCoupon",
+        summary: "Create a coupon",
+        description: "Admin only. The code is saved in uppercase. usedCount starts at 0.",
+        security: [{ cookieAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/CreateCouponRequest" },
+            },
+          },
+        },
+        responses: {
+          "201": {
+            description: "Coupon created",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/CouponResponse" },
+              },
+            },
+          },
+          "400": {
+            description: "Invalid body, including percent outside 1 to 80 or expiresAt in the past",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ValidationErrorResponse" },
+              },
+            },
+          },
+          "401": {
+            description: "Not logged in",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "403": {
+            description: "Logged in, but not an admin",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "409": {
+            description: "Coupon code already exists, in any letter case",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/admin/coupons/{id}": {
+      patch: {
+        tags: ["Admin Coupons"],
+        operationId: "updateCoupon",
+        summary: "Update a coupon",
+        description:
+          "Admin only. Activate or deactivate it, move expiresAt to a later date, or change usageLimit. code and percent cannot be changed.",
+        security: [{ cookieAuth: [] }],
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "integer", minimum: 1, example: 1 } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/UpdateCouponRequest" },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "Coupon updated",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/CouponResponse" },
+              },
+            },
+          },
+          "400": {
+            description: "Invalid id or body, an empty body, expiresAt in the past, or usageLimit below usedCount",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "401": {
+            description: "Not logged in",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "403": {
+            description: "Logged in, but not an admin",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "404": {
+            description: "Coupon not found",
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/ErrorResponse" },
