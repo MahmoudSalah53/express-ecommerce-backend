@@ -3,7 +3,37 @@ import { prisma } from "../config/database";
 import { AppError } from "../utils/AppError";
 import { CreateOrderInput, ListOrdersQuery } from "../validators/order.validator";
 
+export async function restoreStock(tx: Prisma.TransactionClient, orderId: number) {
+  const items = await tx.orderItem.findMany({ where: { orderId } });
+
+  for (const item of items) {
+    await tx.product.update({
+      where: { id: item.productId },
+      data: { stock: { increment: item.quantity } },
+    });
+  }
+}
+
 export const orderService = {
+  cancel: async (userId: number, id: number) => {
+    return prisma.$transaction(async (tx) => {
+      const result = await tx.order.updateMany({
+        where: { id, userId, status: "PENDING" },
+        data: { status: "CANCELLED" },
+      });
+
+      if (result.count === 0) {
+        const order = await tx.order.findFirst({ where: { id, userId } });
+        if (!order) throw new AppError("Order not found", 404);
+        throw new AppError(`Only pending orders can be cancelled. This order is ${order.status}`, 400);
+      }
+
+      await restoreStock(tx, id);
+
+      return tx.order.findUniqueOrThrow({ where: { id }, include: { items: true } });
+    });
+  },
+
   list: async (userId: number, query: ListOrdersQuery) => {
     const where: Prisma.OrderWhereInput = { userId };
 

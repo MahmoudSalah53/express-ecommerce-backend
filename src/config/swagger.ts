@@ -1554,6 +1554,53 @@ export const openApiSpec = {
         },
       },
     },
+    "/api/orders/{id}/cancel": {
+      post: {
+        tags: ["Orders"],
+        operationId: "cancelOrder",
+        summary: "Cancel one of my orders",
+        description:
+          "Signed-in user only. Allowed only while the order is PENDING. Sets status to CANCELLED and returns every item's quantity to stock. Cancelling twice returns 400 the second time and stock is restored only once.",
+        security: [{ cookieAuth: [] }],
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "integer", minimum: 1, example: 1 } },
+        ],
+        responses: {
+          "200": {
+            description: "Order cancelled",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/OrderResponse" },
+              },
+            },
+          },
+          "400": {
+            description: "Invalid id, or the order is SHIPPED, DELIVERED, or already CANCELLED",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "401": {
+            description: "Missing, invalid, or expired session cookie",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+          "404": {
+            description: "Order not found, including an order that belongs to another customer",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ErrorResponse" },
+              },
+            },
+          },
+        },
+      },
+    },
     "/api/users/logout": {
       post: {
         tags: ["Auth"],

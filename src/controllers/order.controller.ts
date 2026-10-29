@@ -18,6 +18,11 @@ export const getOrderById: RequestHandler = async (req, res) => {
   return res.status(200).json({ status: "success", data: order });
 };
 
+export const cancelOrder: RequestHandler = async (req, res) => {
+  const order = await orderService.cancel(req.user?.id as number, Number(req.params.id));
+  return res.status(200).json({ status: "success", data: order });
+};
+
 export const createOrder: RequestHandler = async (req, res) => {
   const order = await orderService.create(req.user?.id as number, req.body as CreateOrderInput);
   return res.status(201).json({ status: "success", data: order });
