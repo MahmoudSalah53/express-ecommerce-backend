@@ -1,5 +1,4 @@
 import { COOKIE_NAME } from "./cookie";
-import { env } from "./env";
 
 const errorSchema = {
   type: "object",
@@ -28,7 +27,7 @@ export const openApiSpec = {
     version: "1.0.0",
     description: `Session is an HttpOnly cookie named ${COOKIE_NAME}. Login sets it; logout clears it.`,
   },
-  servers: [{ url: `http://localhost:${env.PORT}` }],
+  servers: [{ url: "/" }],
   tags: [
     { name: "Auth", description: "Signup, login, and logout" },
     { name: "Categories", description: "Product categories" },

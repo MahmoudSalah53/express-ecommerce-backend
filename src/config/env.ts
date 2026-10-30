@@ -11,13 +11,14 @@ const envSchema = z.object({
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
   JWT_SECRET: z.string().min(1, "JWT_SECRET is required"),
   JWT_EXPIRES_IN: z.string().min(1, "JWT_EXPIRES_IN is required").default("7d"),
+  COOKIE_SAME_SITE: z.enum(["lax", "strict", "none"]).default("lax"),
 });
 
 const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
-  console.error("Invalid environment variables:", parsed.error.flatten().fieldErrors);
-  process.exit(1);
+  const details = JSON.stringify(parsed.error.flatten().fieldErrors);
+  throw new Error(`Invalid environment variables: ${details}`);
 }
 
 export const env = parsed.data;
