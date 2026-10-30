@@ -14,7 +14,8 @@
     "make": "tsx scripts/make.ts",
     "predev": "prisma generate",
     "prebuild": "prisma generate",
-    "db:seed": "prisma db seed"
+    "db:seed": "prisma db seed",
+    "test": "tsx --test"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

@@ -4,10 +4,14 @@ export const createCategorySchema = z.object({
   name: z.string().min(1),
 });
 
-export const updateCategorySchema = z.object({
-  name: z.string().min(1).optional(),
-  slug: z.string().min(1).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).optional(),
-});
+export const updateCategorySchema = z
+  .object({
+    name: z.string().min(1).optional(),
+    slug: z.string().min(1).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, {
+    message: "At least one field is required",
+  });
 
 export const categoryIdParamSchema = z.object({
   id: z.coerce.number().int().positive(),

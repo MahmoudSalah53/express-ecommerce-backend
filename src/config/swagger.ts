@@ -1375,7 +1375,7 @@ export const openApiSpec = {
         },
       },
     },
-    "/api/address": {
+    "/api/addresses": {
       get: {
         tags: ["Addresses"],
         operationId: "listAddresses",
@@ -1443,7 +1443,7 @@ export const openApiSpec = {
         },
       },
     },
-    "/api/address/{id}": {
+    "/api/addresses/{id}": {
       patch: {
         tags: ["Addresses"],
         operationId: "updateAddress",
